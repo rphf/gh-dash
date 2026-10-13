@@ -10,6 +10,7 @@ type Data struct {
 	Primary    *data.PullRequestData
 	Enriched   data.EnrichedPullRequestData
 	IsEnriched bool
+	Stack      Stack
 }
 
 func (data Data) GetTitle() string {
