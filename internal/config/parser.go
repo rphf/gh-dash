@@ -331,6 +331,7 @@ type Config struct {
 	ShowAuthorIcons          bool                         `yaml:"showAuthorIcons,omitempty"`
 	SmartFilteringAtLaunch   bool                         `yaml:"smartFilteringAtLaunch"                         default:"true"`
 	IncludeReadNotifications bool                         `yaml:"includeReadNotifications"                       default:"true"`
+	Stacks                   StacksConfig                 `yaml:"stacks,omitempty"`
 }
 
 type configError struct {

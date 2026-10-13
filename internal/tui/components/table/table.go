@@ -27,6 +27,7 @@ type Model struct {
 	dimensions     constants.Dimensions
 	rowsViewport   listviewport.Model
 	ContentHeight  int // Optional: override content height (0 = use default from config)
+	rowDecorator   RowDecorator
 }
 
 type Column struct {
@@ -369,10 +370,10 @@ func (m *Model) renderRow(rowId int, headerColumns []string) string {
 		headerColId++
 	}
 
-	return m.ctx.Styles.Table.RowStyle.
+	return m.decorateRow(rowId, m.ctx.Styles.Table.RowStyle.
 		BorderBottom(m.ctx.Config.Theme.Ui.Table.ShowSeparator).
 		MaxWidth(m.dimensions.Width).
-		Render(lipgloss.JoinHorizontal(lipgloss.Top, renderedColumns...))
+		Render(lipgloss.JoinHorizontal(lipgloss.Top, renderedColumns...)))
 }
 
 func (m *Model) UpdateProgramContext(ctx *context.ProgramContext) {

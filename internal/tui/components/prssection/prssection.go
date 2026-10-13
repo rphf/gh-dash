@@ -25,8 +25,9 @@ const SectionType = "pr"
 
 type Model struct {
 	section.BaseModel
-	Prs []prrow.Data
-	cfg config.PrsSectionConfig
+	Prs    []prrow.Data
+	cfg    config.PrsSectionConfig
+	stacks stackState
 }
 
 func NewModel(
@@ -155,6 +156,9 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 
 		case key.Matches(msg, keys.PRKeys.WatchChecks):
 			cmd = m.watchChecks()
+
+		case key.Matches(msg, keys.PRKeys.ToggleStack):
+			m.toggleStack()
 		}
 
 	case tasks.UpdatePRMsg:
@@ -205,6 +209,7 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 			} else {
 				m.Prs = msg.Prs
 			}
+			m.arrangeStacks(m.PageInfo == nil)
 			m.TotalCount = msg.TotalCount
 			m.PageInfo = &msg.PageInfo
 			m.SetIsLoading(false)
@@ -499,6 +504,7 @@ func (m *Model) FetchNextPageSectionRows() []tea.Cmd {
 		for _, pr := range res.Prs {
 			prs = append(prs, prrow.Data{Primary: &pr})
 		}
+		loadStackSources(m.Ctx, prs)
 		return constants.TaskFinishedMsg{
 			SectionId:   m.Id,
 			SectionType: m.Type,

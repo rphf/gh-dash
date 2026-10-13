@@ -178,12 +178,12 @@ func keepSameSpacesOnAddDeletions(str string) string {
 }
 
 func (pr *PullRequest) renderTitle() string {
-	return components.RenderIssueTitle(
+	return pr.withStackCompact(components.RenderIssueTitle(
 		pr.Ctx,
 		pr.Data.Primary.State,
 		pr.Data.Primary.Title,
 		pr.Data.Primary.Number,
-	)
+	))
 }
 
 func (pr *PullRequest) renderExtendedTitle(isSelected bool) string {
@@ -223,6 +223,7 @@ func (pr *PullRequest) renderExtendedTitle(isSelected bool) string {
 		MaxHeight(1).
 		Render(title), width-1, constants.Ellipsis))
 
+	top, title = pr.withStackExtended(isSelected, width, top, title)
 	return baseStyle.Render(lipgloss.JoinVertical(lipgloss.Left, top, title))
 }
 

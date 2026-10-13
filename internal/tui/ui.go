@@ -493,6 +493,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.prView.SetSummaryViewMore()
 				m.syncSidebar()
 				return m, nil
+
+			case key.Matches(msg, keys.PRKeys.ToggleStack):
+				cmd = m.updateCurrentSection(msg)
+				return m, tea.Batch(cmd, m.syncSidebar())
 			}
 		case m.ctx.View == config.IssuesView:
 			switch {
