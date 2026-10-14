@@ -49,6 +49,7 @@ type KeyMap struct {
 	SectionMode           key.Binding
 	NewSection            key.Binding
 	RemoveSection         key.Binding
+	RepoScope             key.Binding
 	Help                  key.Binding
 	Quit                  key.Binding
 }
@@ -134,6 +135,7 @@ func (k KeyMap) AppKeys() []key.Binding {
 		k.Search,
 		k.NewSection,
 		k.RemoveSection,
+		k.RepoScope,
 	}
 }
 
@@ -218,6 +220,7 @@ var Keys = &KeyMap{
 		key.WithKeys("Y"),
 		key.WithHelp("Y", "copy url"),
 	),
+	RepoScope: repoScopeBinding,
 	Help: key.NewBinding(
 		key.WithKeys("?"),
 		key.WithHelp("?", "help"),
@@ -339,6 +342,8 @@ func rebindUniversal(universal []config.Keybinding) error {
 			key = &Keys.Help
 		case "quit":
 			key = &Keys.Quit
+		case "repoScope":
+			key = &Keys.RepoScope
 		default:
 			return fmt.Errorf("unknown built-in universal key: '%s'", kb.Builtin)
 		}

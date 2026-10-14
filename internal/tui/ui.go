@@ -39,6 +39,7 @@ import (
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prssection"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/prview"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/reposection"
+	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/scopepicker"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/section"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/sidebar"
 	"github.com/dlvhdr/gh-dash/v4/internal/tui/components/tabs"
@@ -69,6 +70,7 @@ type Model struct {
 	tasks            map[string]context.Task
 	positionOverride string // "" means no override, "right" or "bottom"
 	mode             Mode
+	scopePicker      *scopepicker.Model
 }
 
 type Mode int
@@ -199,6 +201,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		currSection     = m.getCurrSection()
 		currRowData     = m.getCurrRowData()
 	)
+
+	if cmd, ok := m.updateRepoScope(msg, currSection); ok {
+		return m, cmd
+	}
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -702,6 +708,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case initMsg:
 		m.ctx.Config = &msg.Config
+		m.ctx.InitRepoScope()
 		m.ctx.RepoUrl = msg.RepoUrl
 		m.ctx.Theme = theme.ParseTheme(m.ctx.Config)
 		m.ctx.Styles = context.InitStyles(m.ctx.Theme)
@@ -1037,6 +1044,7 @@ func (m *Model) View() tea.View {
 		layers = append(layers, lipgloss.NewLayer(issueCmp).X(previewPos.X+3).Y(y))
 	}
 
+	layers = append(layers, m.repoScopeLayers()...)
 	comp := lipgloss.NewCompositor(layers...)
 	v.SetContent(comp.Render())
 

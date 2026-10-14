@@ -209,7 +209,7 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 			} else {
 				m.Prs = msg.Prs
 			}
-			m.arrangeStacks(m.PageInfo == nil)
+			m.onPrsFetched(m.PageInfo == nil)
 			m.TotalCount = msg.TotalCount
 			m.PageInfo = &msg.PageInfo
 			m.SetIsLoading(false)

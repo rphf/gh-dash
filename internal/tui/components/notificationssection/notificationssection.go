@@ -393,6 +393,7 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 				// First page, replace
 				m.Notifications = msg.Notifications
 			}
+			m.onNotificationsFetched()
 			m.TotalCount = len(m.Notifications)
 			m.PageInfo = &msg.PageInfo
 			m.SetIsLoading(false)
@@ -555,7 +556,7 @@ func (m *Model) FetchNextPageSectionRows() []tea.Cmd {
 	var cmds []tea.Cmd
 
 	// Parse filters from search value (includes repo filter if smartFilteringAtLaunch is enabled)
-	filters := parseNotificationFilters(m.GetSearchValue(), m.Ctx.Config.IncludeReadNotifications)
+	filters := parseNotificationFilters(m.GetFilters(), m.Ctx.Config.IncludeReadNotifications)
 
 	// Handle is:done filter - these notifications cannot be retrieved
 	if filters.IsDone {
