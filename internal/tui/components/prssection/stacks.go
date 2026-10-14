@@ -112,7 +112,7 @@ func (m *Model) arrangeStacks(firstPage bool) {
 	m.syncAll(firstPage)
 	all := m.withoutHidden(slices.Clone(m.rows.all))
 	if !stacksEnabled(m.Ctx) {
-		m.Prs = all
+		m.Prs = m.sortByAttention(all, all)
 		m.rows.roots = nil
 		m.setRowDecorator()
 		return
@@ -135,6 +135,7 @@ func (m *Model) arrangeStacks(firstPage bool) {
 	order, placements := stack.Arrange(items)
 	m.rows.roots = map[string]string{}
 	visible := make([]prrow.Data, 0, len(all))
+	arranged := make([]prrow.Data, 0, len(all))
 	for _, i := range order {
 		pr := all[i]
 		p := placements[i]
@@ -146,12 +147,13 @@ func (m *Model) arrangeStacks(firstPage bool) {
 			pr.Stack.Folded = m.rows.folded[pr.Stack.RootURL]
 			m.rows.roots[pr.Primary.Url] = pr.Stack.RootURL
 		}
+		arranged = append(arranged, pr)
 		if p != nil && !p.IsRoot && pr.Stack.Folded {
 			continue
 		}
 		visible = append(visible, pr)
 	}
-	m.Prs = visible
+	m.Prs = m.sortByAttention(arranged, visible)
 	m.setRowDecorator()
 }
 
