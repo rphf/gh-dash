@@ -64,6 +64,10 @@ func (issue *Issue) renderCreatedAt() string {
 }
 
 func (issue *Issue) renderRepoName() string {
+	if issue.Ctx.RepoScoped() {
+		return issue.getTextStyle().
+			Render(issue.Ctx.RowRepoName(issue.Data.Repository.NameWithOwner))
+	}
 	repoName := issue.Data.Repository.Name
 	return issue.getTextStyle().Render(repoName)
 }
@@ -78,6 +82,9 @@ func (issue *Issue) renderTitle() string {
 }
 
 func (issue *Issue) renderOpenedBy() string {
+	if issue.Ctx.RepoScoped() && issue.Ctx.IsViewer(issue.Data.Author.Login) {
+		return ""
+	}
 	return issue.getTextStyle().Render(issue.Data.GetAuthor(issue.Ctx.Theme, issue.ShowAuthorIcon))
 }
 

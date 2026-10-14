@@ -5,4 +5,7 @@ func (m *Model) onIssuesFetched() {
 	for _, issue := range m.Issues {
 		m.Ctx.AddKnownRepos(issue.Repository.NameWithOwner)
 	}
+	if m.Ctx.RepoScoped() {
+		m.Table.HideEmptyColumns(m.BuildRows())
+	}
 }
