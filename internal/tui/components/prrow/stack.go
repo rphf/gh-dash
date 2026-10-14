@@ -2,6 +2,8 @@ package prrow
 
 import (
 	"fmt"
+	"path"
+	"strconv"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -56,13 +58,16 @@ func (pr *PullRequest) renderStackRails(isSelected bool) (string, string) {
 	return style.Render("├ "), style.Render("│ ")
 }
 
-// renderStackNumber renders the position of a stack member, such as "③ ".
+// renderStackNumber renders the position of a stack member, such as "3 ",
+// padded to the width of the stack size so titles line up.
 func (pr *PullRequest) renderStackNumber(isSelected bool) string {
 	if !pr.isStackMember() {
 		return ""
 	}
+	p := pr.Data.Stack.Placement
+	width := len(strconv.Itoa(max(p.Size, p.Position)))
 	return stackStyle(pr.Ctx, isSelected).Bold(true).
-		Render(circledNumber(pr.Data.Stack.Placement.Position) + " ")
+		Render(fmt.Sprintf("%*d ", width, p.Position))
 }
 
 // renderStackBadge renders the number of PRs stacked on a root, and if they
@@ -80,27 +85,36 @@ func (pr *PullRequest) renderStackBadge(isSelected bool) string {
 		Render(fmt.Sprintf(" %s %d stacked", arrow, p.Members))
 }
 
-// circledNumber returns n as a circled digit, such as ③, for 1 to 50.
-func circledNumber(n int) string {
-	switch {
-	case n >= 1 && n <= 20:
-		return string(rune('①' + n - 1))
-	case n >= 21 && n <= 35:
-		return string(rune('㉑' + n - 21))
-	case n >= 36 && n <= 50:
-		return string(rune('㊱' + n - 36))
-	default:
-		return fmt.Sprintf("(%d)", n)
+// renderLoneBadge renders, faint, the place in its stack of a stacked PR
+// shown without the rest of its stack, such as " 3 of 15 in stack".
+func (pr *PullRequest) renderLoneBadge(isSelected bool) string {
+	if pr.Data.Stack.Placement != nil {
+		return ""
 	}
+	var text string
+	switch s := pr.Data.Stack.Sources; {
+	case s.Native != nil && s.Native.Size > 1:
+		text = fmt.Sprintf("%d of %d in stack", s.Native.Position, s.Native.Size)
+	case s.SpiceParentURL != "":
+		text = "stacked on #" + path.Base(s.SpiceParentURL)
+	default:
+		return ""
+	}
+	style := lipgloss.NewStyle().Foreground(pr.Ctx.Theme.FaintText)
+	if isSelected {
+		style = style.Background(pr.Ctx.Theme.SelectedBackground)
+	}
+	return style.Render(" " + text)
 }
 
 // withStackCompact adds the stack rail, number and badge to a compact title.
 func (pr *PullRequest) withStackCompact(title string) string {
-	if pr.Data.Stack.Placement == nil {
+	lone := pr.renderLoneBadge(false)
+	if pr.Data.Stack.Placement == nil && lone == "" {
 		return title
 	}
 	rail, _ := pr.renderStackRails(false)
-	return rail + pr.renderStackNumber(false) + title + pr.renderStackBadge(false)
+	return rail + pr.renderStackNumber(false) + title + pr.renderStackBadge(false) + lone
 }
 
 // withStackExtended adds the stack rail, number and badge to the two lines of
@@ -110,7 +124,8 @@ func (pr *PullRequest) withStackExtended(
 	width int,
 	top, title string,
 ) (string, string) {
-	if pr.Data.Stack.Placement == nil {
+	lone := pr.renderLoneBadge(isSelected)
+	if pr.Data.Stack.Placement == nil && lone == "" {
 		return top, title
 	}
 
@@ -122,7 +137,7 @@ func (pr *PullRequest) withStackExtended(
 		bg = bg.Background(pr.Ctx.Theme.SelectedBackground)
 	}
 	number := pr.renderStackNumber(isSelected)
-	badge := pr.renderStackBadge(isSelected)
+	badge := pr.renderStackBadge(isSelected) + lone
 	avail := width - lipgloss.Width(railTitle) - lipgloss.Width(number) - lipgloss.Width(badge)
 	text := bg.Foreground(pr.Ctx.Theme.PrimaryText).Bold(true).
 		Render(ansi.Truncate(pr.Data.Primary.Title, max(avail, 0), constants.Ellipsis))

@@ -47,17 +47,35 @@ func TestWithStackExtended(t *testing.T) {
 
 	top, title = render(newStackPR(&stack.Placement{Position: 2}, false))
 	require.Equal(t, "├ o/r #1 by @me", top)
-	require.Equal(t, "│ ② add things", title)
+	require.Equal(t, "│ 2 add things", title)
 
 	top, title = render(newStackPR(&stack.Placement{Position: 3, Last: true}, false))
 	require.Equal(t, "└ o/r #1 by @me", top)
-	require.Equal(t, "  ③ add things", title)
+	require.Equal(t, "  3 add things", title)
 }
 
-func TestCircledNumber(t *testing.T) {
-	require.Equal(t, "①", circledNumber(1))
-	require.Equal(t, "⑳", circledNumber(20))
-	require.Equal(t, "㉑", circledNumber(21))
-	require.Equal(t, "㊿", circledNumber(50))
-	require.Equal(t, "(51)", circledNumber(51))
+func TestLoneBadge(t *testing.T) {
+	render := func(s stack.Sources) string {
+		pr := newStackPR(nil, false)
+		pr.Data.Stack.Sources = s
+		_, title := pr.withStackExtended(false, 40, "#1", "add things")
+		return strings.TrimRight(ansi.Strip(title), " ")
+	}
+	require.Equal(t, "add things", render(stack.Sources{}))
+	require.Equal(t, "add things", render(stack.Sources{
+		Native: &stack.Native{Size: 1, Position: 1},
+	}))
+	require.Equal(t, "add things 3 of 15 in stack", render(stack.Sources{
+		Native: &stack.Native{Size: 15, Position: 3},
+	}))
+	require.Equal(t, "add things stacked on #12", render(stack.Sources{
+		SpiceParentURL: "https://github.com/o/r/pull/12",
+	}))
+}
+
+func TestStackNumberPadding(t *testing.T) {
+	pr := newStackPR(&stack.Placement{Position: 5, Size: 11}, false)
+	require.Equal(t, " 5 ", ansi.Strip(pr.renderStackNumber(false)))
+	pr = newStackPR(&stack.Placement{Position: 10, Size: 11}, false)
+	require.Equal(t, "10 ", ansi.Strip(pr.renderStackNumber(false)))
 }
