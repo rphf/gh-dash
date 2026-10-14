@@ -503,6 +503,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case key.Matches(msg, keys.PRKeys.ToggleStack):
 				cmd = m.updateCurrentSection(msg)
 				return m, tea.Batch(cmd, m.syncSidebar())
+
+			case key.Matches(msg, keys.PRKeys.Hide, keys.PRKeys.ShowHidden):
+				cmd = m.updateCurrentSection(msg)
+				return m, tea.Batch(cmd, m.onViewedRowChanged())
 			}
 		case m.ctx.View == config.IssuesView:
 			switch {

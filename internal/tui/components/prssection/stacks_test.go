@@ -15,6 +15,7 @@ import (
 
 func newStackTestModel(t *testing.T) *Model {
 	t.Helper()
+	t.Cleanup(data.SetHiddenPRStoreForTesting(""))
 	ctx := &context.ProgramContext{
 		Theme: *theme.DefaultTheme,
 		Config: &config.Config{
