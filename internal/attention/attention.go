@@ -60,6 +60,8 @@ type Event struct {
 	// State is the state of a review, such as COMMENTED or APPROVED. It is
 	// empty for comments.
 	State string
+	// HasBody tells if a review has a top-level message.
+	HasBody bool
 }
 
 // Thread is a review thread.
@@ -80,7 +82,9 @@ type Input struct {
 	Mergeable      string
 	// CIState is the state of the status checks of the last commit, such as
 	// SUCCESS or FAILURE.
-	CIState            string
+	CIState string
+	// LastCommitAt is the author date of the last commit, which a rebase
+	// keeps.
 	LastCommitAt       time.Time
 	RequestedReviewers []string
 	Reviews            []Event
@@ -98,10 +102,11 @@ func Compute(in Input) Status {
 	}
 
 	var reasons []string
-	if in.ReviewDecision == "CHANGES_REQUESTED" {
+	lastReply := lastReply(in)
+	if in.ReviewDecision == "CHANGES_REQUESTED" && lastChangesRequest(in).After(lastReply) {
 		reasons = append(reasons, "changes requested")
 	}
-	if n := newComments(in); n > 0 {
+	if n := newComments(in, lastReply); n > 0 {
 		reasons = append(reasons, plural(n, "new comment"))
 	}
 	if n := openThreads(in); n > 0 {
@@ -148,20 +153,39 @@ func reviewerStatus(in Input) Status {
 	return Status{Bucket: Waiting}
 }
 
-// newComments counts the comments and commented reviews by other people
-// after the viewer's last comment or review.
-func newComments(in Input) int {
-	var lastReply time.Time
+// lastReply returns the time of the viewer's last comment, review or
+// review thread reply.
+func lastReply(in Input) time.Time {
+	var last time.Time
 	for _, e := range append(append([]Event{}, in.Comments...), in.Reviews...) {
-		if in.isMe(e.Author) && e.At.After(lastReply) {
-			lastReply = e.At
+		if in.isMe(e.Author) && e.At.After(last) {
+			last = e.At
 		}
 	}
 	for _, t := range in.Threads {
-		if in.isMe(t.Last.Author) && t.Last.At.After(lastReply) {
-			lastReply = t.Last.At
+		if in.isMe(t.Last.Author) && t.Last.At.After(last) {
+			last = t.Last.At
 		}
 	}
+	return last
+}
+
+// lastChangesRequest returns the time of the last review that requested
+// changes.
+func lastChangesRequest(in Input) time.Time {
+	var last time.Time
+	for _, r := range in.Reviews {
+		if r.State == "CHANGES_REQUESTED" && r.At.After(last) {
+			last = r.At
+		}
+	}
+	return last
+}
+
+// newComments counts the comments by other people after lastReply, and their
+// reviews with a top-level message. Review thread comments count through
+// openThreads.
+func newComments(in Input, lastReply time.Time) int {
 	n := 0
 	for _, e := range in.Comments {
 		if isOther(in, e) && e.At.After(lastReply) {
@@ -169,7 +193,7 @@ func newComments(in Input) int {
 		}
 	}
 	for _, e := range in.Reviews {
-		if isOther(in, e) && e.State == "COMMENTED" && e.At.After(lastReply) {
+		if isOther(in, e) && e.State == "COMMENTED" && e.HasBody && e.At.After(lastReply) {
 			n++
 		}
 	}

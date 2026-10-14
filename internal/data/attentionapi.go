@@ -27,7 +27,7 @@ type attentionNode struct {
 	Commits struct {
 		Nodes []struct {
 			Commit struct {
-				CommittedDate time.Time `json:"committedDate"`
+				AuthoredDate time.Time `json:"authoredDate"`
 			} `json:"commit"`
 		} `json:"nodes"`
 	} `json:"commits"`
@@ -41,6 +41,7 @@ type attentionNode struct {
 			Author      *attentionActor `json:"author"`
 			SubmittedAt time.Time       `json:"submittedAt"`
 			State       string          `json:"state"`
+			Body        string          `json:"body"`
 		} `json:"nodes"`
 	} `json:"reviews"`
 	Comments struct {
@@ -63,9 +64,9 @@ type attentionNode struct {
 }
 
 const attentionFields = `... on PullRequest {
-  commits(last: 1) { nodes { commit { committedDate } } }
+  commits(last: 1) { nodes { commit { authoredDate } } }
   reviewRequests(first: 20) { nodes { requestedReviewer { __typename ... on User { login } } } }
-  reviews(last: 50) { nodes { author { __typename login } submittedAt state } }
+  reviews(last: 50) { nodes { author { __typename login } submittedAt state body } }
   comments(last: 50) { nodes { author { __typename login } createdAt } }
   reviewThreads(last: 50) { nodes { isResolved comments(last: 1) { nodes { author { __typename login } createdAt } } } }
 }`
@@ -129,7 +130,7 @@ func FetchAttentionInputs(urls []string) (string, map[string]attention.Input, er
 func (n attentionNode) input() attention.Input {
 	var in attention.Input
 	if len(n.Commits.Nodes) > 0 {
-		in.LastCommitAt = n.Commits.Nodes[0].Commit.CommittedDate
+		in.LastCommitAt = n.Commits.Nodes[0].Commit.AuthoredDate
 	}
 	for _, r := range n.ReviewRequests.Nodes {
 		if r.RequestedReviewer != nil && r.RequestedReviewer.Login != "" {
@@ -137,7 +138,9 @@ func (n attentionNode) input() attention.Input {
 		}
 	}
 	for _, r := range n.Reviews.Nodes {
-		in.Reviews = append(in.Reviews, r.Author.event(r.SubmittedAt, r.State))
+		e := r.Author.event(r.SubmittedAt, r.State)
+		e.HasBody = strings.TrimSpace(r.Body) != ""
+		in.Reviews = append(in.Reviews, e)
 	}
 	for _, c := range n.Comments.Nodes {
 		in.Comments = append(in.Comments, c.Author.event(c.CreatedAt, ""))
