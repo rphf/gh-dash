@@ -178,7 +178,7 @@ func (m *Model) toggleStack() {
 
 // setRowDecorator dims the hidden PRs, and draws the stack rail through the
 // separator line under each root and each member that is not the last of its
-// stack.
+// stack. Between members, the separator line shows only the rail.
 func (m *Model) setRowDecorator() {
 	separator := m.Ctx.Config.Theme.Ui.Table.ShowSeparator
 	dimmed := make([]bool, len(m.Prs))
@@ -191,7 +191,7 @@ func (m *Model) setRowDecorator() {
 		case p.IsRoot:
 			stops[i] = "┬"
 		case !p.Last:
-			stops[i] = "┼"
+			stops[i] = "│"
 		}
 	}
 
@@ -223,9 +223,13 @@ func (m *Model) setRowDecorator() {
 		if dimmed[rowId] {
 			rail = lipgloss.NewStyle().Foreground(ctx.Theme.FaintText)
 		}
-		lines[last] = border.Render(strings.Repeat("─", x)) +
+		fill := "─"
+		if stops[rowId] == "│" {
+			fill = " "
+		}
+		lines[last] = border.Render(strings.Repeat(fill, x)) +
 			rail.Render(stops[rowId]) +
-			border.Render(strings.Repeat("─", width-x-1))
+			border.Render(strings.Repeat(fill, width-x-1))
 		return strings.Join(lines, "\n")
 	})
 }

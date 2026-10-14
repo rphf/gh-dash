@@ -51,21 +51,22 @@ func (pr *PullRequest) renderStackRails(isSelected bool) (string, string) {
 	if !pr.isStackMember() {
 		return "", ""
 	}
-	style := stackStyle(pr.Ctx, isSelected)
-	if pr.Data.Stack.Placement.Last {
-		return style.Render("└ "), style.Render("  ")
-	}
-	return style.Render("├ "), style.Render("│ ")
+	rail := stackStyle(pr.Ctx, isSelected).Render("│ ")
+	return rail, rail
 }
 
-// renderStackNumber renders the position of a stack member, such as "3 ",
-// padded to the width of the stack size so titles line up.
+// renderStackNumber renders the position of a stacked PR, such as "3 ". The
+// numbers of members are padded to the width of the stack size so their
+// titles line up.
 func (pr *PullRequest) renderStackNumber(isSelected bool) string {
-	if !pr.isStackMember() {
+	if pr.Data.Stack.Placement == nil {
 		return ""
 	}
 	p := pr.Data.Stack.Placement
 	width := len(strconv.Itoa(max(p.Size, p.Position)))
+	if p.IsRoot {
+		width = 0
+	}
 	return stackStyle(pr.Ctx, isSelected).Bold(true).
 		Render(fmt.Sprintf("%*d ", width, p.Position))
 }
