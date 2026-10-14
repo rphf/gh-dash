@@ -15,6 +15,7 @@ import (
 type HiddenPRStore struct {
 	mu       sync.RWMutex
 	saveMu   sync.Mutex
+	saving   sync.WaitGroup
 	entries  map[string]time.Time
 	filePath string
 }
@@ -43,7 +44,7 @@ func (s *HiddenPRStore) Hide(url string, updatedAt time.Time) {
 	s.mu.Lock()
 	s.entries[url] = updatedAt
 	s.mu.Unlock()
-	go s.save()
+	s.saving.Go(s.save)
 }
 
 // Unhide shows the PR at url again.
@@ -51,7 +52,7 @@ func (s *HiddenPRStore) Unhide(url string) {
 	s.mu.Lock()
 	delete(s.entries, url)
 	s.mu.Unlock()
-	go s.save()
+	s.saving.Go(s.save)
 }
 
 // IsHidden tells if the PR at url is hidden. A PR whose updatedAt is after
@@ -68,7 +69,7 @@ func (s *HiddenPRStore) IsHidden(url string, updatedAt time.Time) bool {
 		delete(s.entries, url)
 	}
 	s.mu.Unlock()
-	go s.save()
+	s.saving.Go(s.save)
 	return false
 }
 
