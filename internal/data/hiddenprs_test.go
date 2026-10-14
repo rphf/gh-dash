@@ -11,6 +11,7 @@ import (
 func TestHiddenPRStore(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "hidden-prs.json")
 	s := newHiddenPRStore(path)
+	t.Cleanup(s.saving.Wait)
 	t0 := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	s.Hide("a", t0)
