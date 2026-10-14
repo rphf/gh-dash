@@ -196,6 +196,7 @@ func (pr *PullRequest) renderExtendedTitle(isSelected bool) string {
 		pr.Data.Primary.GetAuthor(pr.Ctx.Theme, pr.ShowAuthorIcon)))
 	top := lipgloss.JoinHorizontal(lipgloss.Top, pr.Data.Primary.Repository.NameWithOwner,
 		fmt.Sprintf(" #%d by %s", pr.Data.Primary.Number, author))
+	top = pr.leanTopLine(baseStyle, author, top)
 	branchHidden := pr.Ctx.Config.Defaults.Layout.Prs.Base.Hidden
 	if branchHidden == nil || !*branchHidden {
 		branch := baseStyle.Render(pr.Data.Primary.HeadRefName)
@@ -223,6 +224,9 @@ func (pr *PullRequest) renderExtendedTitle(isSelected bool) string {
 }
 
 func (pr *PullRequest) renderAuthor() string {
+	if pr.isViewerAuthor() {
+		return ""
+	}
 	return pr.getTextStyle().Render(pr.Data.Primary.GetAuthor(pr.Ctx.Theme, pr.ShowAuthorIcon))
 }
 
@@ -292,6 +296,9 @@ func (pr *PullRequest) renderLabels(isSelected bool) string {
 }
 
 func (pr *PullRequest) renderRepoName() string {
+	if pr.Ctx.RepoScoped() {
+		return pr.renderScopedRepoName()
+	}
 	repoName := ""
 	if !pr.Ctx.Config.Theme.Ui.Table.Compact {
 		repoName = pr.Data.Primary.Repository.NameWithOwner
@@ -347,6 +354,9 @@ func (pr *PullRequest) renderCreatedAt() string {
 
 func (pr *PullRequest) renderBaseName() string {
 	if pr.Data.Primary == nil {
+		return ""
+	}
+	if pr.isDefaultBase() {
 		return ""
 	}
 	return pr.getTextStyle().Render(pr.Data.Primary.BaseRefName)

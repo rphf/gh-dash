@@ -7,4 +7,7 @@ func (m *Model) onPrsFetched(firstPage bool) {
 		m.Ctx.AddKnownRepos(pr.Primary.Repository.NameWithOwner)
 	}
 	m.arrangeStacks(firstPage)
+	if m.Ctx.RepoScoped() {
+		m.Table.HideEmptyColumns(m.BuildRows())
+	}
 }

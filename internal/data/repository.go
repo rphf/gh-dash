@@ -26,4 +26,5 @@ type Repository struct {
 	NameWithOwner         string
 	IsArchived            bool
 	BranchProtectionRules BranchProtectionRules `graphql:"branchProtectionRules(first: 1)"`
+	DefaultBranchRef      struct{ Name string }
 }
