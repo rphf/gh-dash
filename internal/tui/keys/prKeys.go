@@ -30,10 +30,14 @@ type PRKeyMap struct {
 	ToggleSmartFiltering key.Binding
 	ViewIssues           key.Binding
 	ToggleStack          key.Binding
+	Hide                 key.Binding
+	ShowHidden           key.Binding
 }
 
 var PRKeys = PRKeyMap{
 	ToggleStack: toggleStackBinding,
+	Hide:        hidePRBinding,
+	ShowHidden:  showHiddenPRsBinding,
 	PrevSidebarTab: key.NewBinding(
 		key.WithKeys("["),
 		key.WithHelp("[", "previous sidebar tab"),
@@ -133,6 +137,8 @@ func PRFullHelp() []key.Binding {
 		PRKeys.ToggleSmartFiltering,
 		PRKeys.ViewIssues,
 		PRKeys.ToggleStack,
+		PRKeys.Hide,
+		PRKeys.ShowHidden,
 	}
 }
 
@@ -201,6 +207,10 @@ func rebindPRKeys(keys []config.Keybinding) error {
 			key = &PRKeys.SummaryViewMore
 		case "toggleStack":
 			key = &PRKeys.ToggleStack
+		case "hide":
+			key = &PRKeys.Hide
+		case "showHidden":
+			key = &PRKeys.ShowHidden
 		default:
 			return fmt.Errorf("unknown built-in pr key: '%s'", prKey.Builtin)
 		}

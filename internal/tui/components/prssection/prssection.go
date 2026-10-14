@@ -25,9 +25,9 @@ const SectionType = "pr"
 
 type Model struct {
 	section.BaseModel
-	Prs    []prrow.Data
-	cfg    config.PrsSectionConfig
-	stacks stackState
+	Prs  []prrow.Data
+	cfg  config.PrsSectionConfig
+	rows rowState
 }
 
 func NewModel(
@@ -159,6 +159,12 @@ func (m *Model) Update(msg tea.Msg) (section.Section, tea.Cmd) {
 
 		case key.Matches(msg, keys.PRKeys.ToggleStack):
 			m.toggleStack()
+
+		case key.Matches(msg, keys.PRKeys.Hide):
+			m.toggleHidden()
+
+		case key.Matches(msg, keys.PRKeys.ShowHidden):
+			m.toggleShowHidden()
 		}
 
 	case tasks.UpdatePRMsg:
@@ -619,6 +625,7 @@ func (m Model) GetPagerContent() string {
 			len(m.Table.Rows),
 		)
 	}
+	pagerContent = m.withHiddenCount(pagerContent)
 	pager := m.Ctx.Styles.ListViewPort.PagerStyle.Render(pagerContent)
 	return pager
 }

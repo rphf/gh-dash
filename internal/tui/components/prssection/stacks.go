@@ -1,6 +1,7 @@
 package prssection
 
 import (
+	"slices"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -65,29 +66,59 @@ func localRepoPath(ctx *context.ProgramContext, repo string) string {
 	return ""
 }
 
-// stackState holds the stack folding state of a section.
-type stackState struct {
+// rowState holds what the section keeps to build its rows.
+type rowState struct {
+	// all holds every fetched PR, in fetch order. Model.Prs holds the PRs
+	// shown, built from all.
+	all []prrow.Data
 	// folded holds the URLs of the roots whose stacks are folded.
 	folded map[string]bool
-	// hidden holds the PRs of folded stacks, which are not in Model.Prs.
-	hidden []prrow.Data
+	// showHidden shows the hidden PRs, dimmed.
+	showHidden bool
+	// hidden holds the URLs of the hidden PRs in all.
+	hidden map[string]bool
+	// roots holds the URL of the root of the stack of each stacked PR, by
+	// URL, folded members included.
+	roots map[string]string
 }
 
-// arrangeStacks groups stacked PRs under the root of their stack, sets their
-// placement, and hides the members of folded stacks. firstPage tells if
-// Model.Prs was just replaced by a new first page, which makes the hidden PRs
-// stale.
-func (m *Model) arrangeStacks(firstPage bool) {
-	if !stacksEnabled(m.Ctx) {
+// syncAll adds Model.Prs to the fetched PRs. firstPage tells if Model.Prs
+// was just replaced by a new first page. PRs already fetched are replaced,
+// so changes to Model.Prs are kept.
+func (m *Model) syncAll(firstPage bool) {
+	if firstPage {
+		m.rows.all = slices.Clone(m.Prs)
 		return
 	}
-	if m.stacks.folded == nil {
-		m.stacks.folded = map[string]bool{}
+	index := make(map[string]int, len(m.rows.all))
+	for i, pr := range m.rows.all {
+		index[pr.Primary.Url] = i
 	}
+	for _, pr := range m.Prs {
+		if i, ok := index[pr.Primary.Url]; ok {
+			m.rows.all[i] = pr
+		} else {
+			index[pr.Primary.Url] = len(m.rows.all)
+			m.rows.all = append(m.rows.all, pr)
+		}
+	}
+}
 
-	all := m.Prs
-	if !firstPage {
-		all = append(all, m.stacks.hidden...)
+// arrangeStacks builds Model.Prs from the fetched PRs: it leaves out the
+// hidden PRs, groups stacked PRs under the root of their stack, sets their
+// placement, and leaves out the members of folded stacks. firstPage tells if
+// Model.Prs was just replaced by a new first page.
+func (m *Model) arrangeStacks(firstPage bool) {
+	m.syncAll(firstPage)
+	all := m.withoutHidden(slices.Clone(m.rows.all))
+	if !stacksEnabled(m.Ctx) {
+		m.Prs = all
+		m.rows.roots = nil
+		m.setRowDecorator()
+		return
+	}
+	if m.rows.folded == nil {
+		m.rows.folded = map[string]bool{}
 	}
 
 	items := make([]stack.Item, len(all))
@@ -102,8 +133,8 @@ func (m *Model) arrangeStacks(firstPage bool) {
 	}
 
 	order, placements := stack.Arrange(items)
+	m.rows.roots = map[string]string{}
 	visible := make([]prrow.Data, 0, len(all))
-	var hidden []prrow.Data
 	for _, i := range order {
 		pr := all[i]
 		p := placements[i]
@@ -112,17 +143,16 @@ func (m *Model) arrangeStacks(firstPage bool) {
 		pr.Stack.Folded = false
 		if p != nil {
 			pr.Stack.RootURL = all[p.Root].Primary.Url
-			pr.Stack.Folded = m.stacks.folded[pr.Stack.RootURL]
+			pr.Stack.Folded = m.rows.folded[pr.Stack.RootURL]
+			m.rows.roots[pr.Primary.Url] = pr.Stack.RootURL
 		}
 		if p != nil && !p.IsRoot && pr.Stack.Folded {
-			hidden = append(hidden, pr)
 			continue
 		}
 		visible = append(visible, pr)
 	}
 	m.Prs = visible
-	m.stacks.hidden = hidden
-	m.setStackRowDecorator()
+	m.setRowDecorator()
 }
 
 // toggleStack folds or unfolds the stack of the current PR. When the current
@@ -141,21 +171,20 @@ func (m *Model) toggleStack() {
 		m.Table.PrevItem()
 		idx--
 	}
-	m.stacks.folded[rootURL] = !m.stacks.folded[rootURL]
+	m.rows.folded[rootURL] = !m.rows.folded[rootURL]
 	m.arrangeStacks(false)
 	m.Table.SetRows(m.BuildRows())
 }
 
-// setStackRowDecorator draws the stack rail through the separator line under
-// each root and each member that is not the last of its stack.
-func (m *Model) setStackRowDecorator() {
-	if !m.Ctx.Config.Theme.Ui.Table.ShowSeparator {
-		m.Table.SetRowDecorator(nil)
-		return
-	}
-
+// setRowDecorator dims the hidden PRs, and draws the stack rail through the
+// separator line under each root and each member that is not the last of its
+// stack.
+func (m *Model) setRowDecorator() {
+	separator := m.Ctx.Config.Theme.Ui.Table.ShowSeparator
+	dimmed := make([]bool, len(m.Prs))
 	stops := make([]string, len(m.Prs))
 	for i, pr := range m.Prs {
+		dimmed[i] = m.rows.hidden[pr.Primary.Url]
 		p := pr.Stack.Placement
 		switch {
 		case p == nil || pr.Stack.Folded:
@@ -169,19 +198,33 @@ func (m *Model) setStackRowDecorator() {
 	ctx := m.Ctx
 	tbl := &m.Table
 	m.Table.SetRowDecorator(func(rowId int, row string) string {
-		if rowId < 0 || rowId >= len(stops) || stops[rowId] == "" {
+		if rowId < 0 || rowId >= len(stops) {
 			return row
 		}
 		lines := strings.Split(row, "\n")
 		last := len(lines) - 1
+		if dimmed[rowId] {
+			content := len(lines)
+			if separator {
+				content = last
+			}
+			dimLines(ctx, lines[:content], rowId == tbl.GetCurrItem())
+		}
+		if !separator || stops[rowId] == "" {
+			return strings.Join(lines, "\n")
+		}
 		width := lipgloss.Width(lines[last])
 		x := railColumn(tbl.Columns)
 		if x >= width {
-			return row
+			return strings.Join(lines, "\n")
 		}
 		border := lipgloss.NewStyle().Foreground(ctx.Theme.FaintBorder)
+		rail := lipgloss.NewStyle().Foreground(prrow.StackRailColor)
+		if dimmed[rowId] {
+			rail = lipgloss.NewStyle().Foreground(ctx.Theme.FaintText)
+		}
 		lines[last] = border.Render(strings.Repeat("─", x)) +
-			lipgloss.NewStyle().Foreground(prrow.StackRailColor).Render(stops[rowId]) +
+			rail.Render(stops[rowId]) +
 			border.Render(strings.Repeat("─", width-x-1))
 		return strings.Join(lines, "\n")
 	})
