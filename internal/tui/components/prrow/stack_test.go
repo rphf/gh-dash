@@ -39,19 +39,19 @@ func TestWithStackExtended(t *testing.T) {
 	require.Equal(t, "o/r #1 by @me", top)
 	require.Equal(t, "add things", title)
 
-	_, title = render(newStackPR(&stack.Placement{IsRoot: true, Members: 2}, false))
-	require.Equal(t, "add things ▾ 2 stacked", title)
+	_, title = render(newStackPR(&stack.Placement{Position: 1, IsRoot: true, Members: 2}, false))
+	require.Equal(t, "1 add things ▾ 2 stacked", title)
 
-	_, title = render(newStackPR(&stack.Placement{IsRoot: true, Members: 2}, true))
-	require.Equal(t, "add things ▸ 2 stacked", title)
+	_, title = render(newStackPR(&stack.Placement{Position: 1, IsRoot: true, Members: 2}, true))
+	require.Equal(t, "1 add things ▸ 2 stacked", title)
 
 	top, title = render(newStackPR(&stack.Placement{Position: 2}, false))
-	require.Equal(t, "├ o/r #1 by @me", top)
+	require.Equal(t, "│ o/r #1 by @me", top)
 	require.Equal(t, "│ 2 add things", title)
 
 	top, title = render(newStackPR(&stack.Placement{Position: 3, Last: true}, false))
-	require.Equal(t, "└ o/r #1 by @me", top)
-	require.Equal(t, "  3 add things", title)
+	require.Equal(t, "│ o/r #1 by @me", top)
+	require.Equal(t, "│ 3 add things", title)
 }
 
 func TestLoneBadge(t *testing.T) {
@@ -78,4 +78,9 @@ func TestStackNumberPadding(t *testing.T) {
 	require.Equal(t, " 5 ", ansi.Strip(pr.renderStackNumber(false)))
 	pr = newStackPR(&stack.Placement{Position: 10, Size: 11}, false)
 	require.Equal(t, "10 ", ansi.Strip(pr.renderStackNumber(false)))
+}
+
+func TestRootNumberIsNotPadded(t *testing.T) {
+	pr := newStackPR(&stack.Placement{Position: 1, Size: 11, IsRoot: true}, false)
+	require.Equal(t, "1 ", ansi.Strip(pr.renderStackNumber(false)))
 }
