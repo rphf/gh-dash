@@ -335,7 +335,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if currSection != nil {
 				data.ClearEnrichmentCache()
 				currSection.ResetFilters()
-				currSection.ResetRows()
+				currSection.ResetPageInfo()
 				m.syncSidebar()
 				cmds = append(cmds, currSection.SetIsLoading(true))
 				cmds = append(cmds, currSection.FetchNextPageSectionRows()...)
