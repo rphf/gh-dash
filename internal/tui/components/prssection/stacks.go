@@ -77,6 +77,9 @@ type rowState struct {
 	showHidden bool
 	// hidden holds the URLs of the hidden PRs in all.
 	hidden map[string]bool
+	// shown holds the URLs of Model.Prs, which keeps the PR under the cursor
+	// when a new first page replaces them.
+	shown []string
 	// roots holds the URL of the root of the stack of each stacked PR, by
 	// URL, folded members included.
 	roots map[string]string
@@ -113,6 +116,7 @@ func (m *Model) arrangeStacks(firstPage bool) {
 	all := m.withoutHidden(slices.Clone(m.rows.all))
 	if !stacksEnabled(m.Ctx) {
 		m.Prs = m.sortByAttention(all, all)
+		m.setShown()
 		m.rows.roots = nil
 		m.setRowDecorator()
 		return
@@ -154,6 +158,7 @@ func (m *Model) arrangeStacks(firstPage bool) {
 		visible = append(visible, pr)
 	}
 	m.Prs = m.sortByAttention(arranged, visible)
+	m.setShown()
 	m.setRowDecorator()
 }
 
@@ -250,4 +255,11 @@ func railColumn(columns []table.Column) int {
 		x += c.ComputedWidth
 	}
 	return x
+}
+
+func (m *Model) setShown() {
+	m.rows.shown = make([]string, len(m.Prs))
+	for i, pr := range m.Prs {
+		m.rows.shown[i] = pr.Primary.Url
+	}
 }

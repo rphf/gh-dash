@@ -547,7 +547,7 @@ func (m *BaseModel) SetIsLoading(val bool) tea.Cmd {
 	}
 
 	// only show table spinner if it's the first page
-	if m.PageInfo == nil {
+	if m.PageInfo == nil && len(m.Table.Rows) == 0 {
 		m.Table.SetIsLoading(true)
 		return m.Table.StartLoadingSpinner()
 	}
