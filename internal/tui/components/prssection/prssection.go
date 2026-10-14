@@ -510,7 +510,7 @@ func (m *Model) FetchNextPageSectionRows() []tea.Cmd {
 		for _, pr := range res.Prs {
 			prs = append(prs, prrow.Data{Primary: &pr})
 		}
-		loadStackSources(m.Ctx, prs)
+		loadRowExtras(m.Ctx, prs)
 		return constants.TaskFinishedMsg{
 			SectionId:   m.Id,
 			SectionType: m.Type,

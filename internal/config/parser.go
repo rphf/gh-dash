@@ -333,6 +333,7 @@ type Config struct {
 	IncludeReadNotifications bool                         `yaml:"includeReadNotifications"                       default:"true"`
 	Stacks                   StacksConfig                 `yaml:"stacks,omitempty"`
 	RepoScope                RepoScopeConfig              `yaml:"repoScope,omitempty"`
+	Attention                AttentionConfig              `yaml:"attention,omitempty"`
 }
 
 type configError struct {

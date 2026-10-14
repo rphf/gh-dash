@@ -202,6 +202,7 @@ func (pr *PullRequest) renderExtendedTitle(isSelected bool) string {
 		branch := baseStyle.Render(pr.Data.Primary.HeadRefName)
 		top = lipgloss.JoinHorizontal(lipgloss.Top, top, baseStyle.Render(" · "), branch)
 	}
+	top = pr.withAttention(baseStyle, top)
 	title := pr.Data.Primary.Title
 	var titleColumn table.Column
 	for _, column := range pr.Columns {

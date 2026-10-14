@@ -3,6 +3,7 @@ package prrow
 import (
 	"time"
 
+	"github.com/dlvhdr/gh-dash/v4/internal/attention"
 	"github.com/dlvhdr/gh-dash/v4/internal/data"
 )
 
@@ -11,6 +12,7 @@ type Data struct {
 	Enriched   data.EnrichedPullRequestData
 	IsEnriched bool
 	Stack      Stack
+	Attention  attention.Status
 }
 
 func (data Data) GetTitle() string {
