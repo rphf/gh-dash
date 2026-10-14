@@ -332,6 +332,7 @@ type Config struct {
 	SmartFilteringAtLaunch   bool                         `yaml:"smartFilteringAtLaunch"                         default:"true"`
 	IncludeReadNotifications bool                         `yaml:"includeReadNotifications"                       default:"true"`
 	Stacks                   StacksConfig                 `yaml:"stacks,omitempty"`
+	RepoScope                RepoScopeConfig              `yaml:"repoScope,omitempty"`
 }
 
 type configError struct {

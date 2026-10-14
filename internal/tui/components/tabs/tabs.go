@@ -73,7 +73,7 @@ func (m Model) View() string {
 	return m.ctx.Styles.Tabs.TabsRow.
 		Width(m.ctx.ScreenWidth).
 		Height(common.HeaderHeight).
-		Render(lipgloss.JoinHorizontal(lipgloss.Bottom, crsl, m.viewNewSectionButton(), logo))
+		Render(lipgloss.JoinHorizontal(lipgloss.Bottom, m.viewRepoScope(), crsl, m.viewNewSectionButton(), logo))
 }
 
 type latestVersionMsg struct {
@@ -99,7 +99,7 @@ func (m Model) carouselWidth() int {
 	logo := m.viewLogo()
 	newSectionButton := m.viewNewSectionButton()
 	return m.ctx.ScreenWidth - lipgloss.Width(logo) -
-		lipgloss.Width(newSectionButton)
+		lipgloss.Width(newSectionButton) - lipgloss.Width(m.viewRepoScope())
 }
 
 func (m *Model) fetchHasNewVersion() tea.Cmd {

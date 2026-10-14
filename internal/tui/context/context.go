@@ -54,6 +54,7 @@ type ProgramContext struct {
 	StartTask            func(task Task) tea.Cmd
 	Theme                theme.Theme
 	Styles               Styles
+	Scope                *RepoScope
 }
 
 func (ctx *ProgramContext) HasGHRepo() bool {

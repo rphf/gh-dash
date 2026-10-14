@@ -72,7 +72,7 @@ func (options NewSectionOptions) GetConfigFiltersWithCurrentRemoteAdded(
 	ctx *context.ProgramContext,
 ) string {
 	searchValue := options.Config.Filters
-	if !ctx.Config.SmartFilteringAtLaunch {
+	if !ctx.Config.SmartFilteringAtLaunch || ctx.RepoScoped() {
 		return searchValue
 	}
 	if !ctx.HasGHRepo() {
@@ -245,7 +245,7 @@ func (m *BaseModel) SyncSmartFilterWithSearchValue() {
 
 func (m *BaseModel) GetSearchValue() string {
 	searchValue := m.enrichSearchWithTemplateVars()
-	if !m.Ctx.HasGHRepo() {
+	if !m.Ctx.HasGHRepo() || m.Ctx.RepoScoped() {
 		return searchValue
 	}
 
@@ -427,7 +427,7 @@ func (m *BaseModel) MakeSectionCmd(cmd tea.Cmd) tea.Cmd {
 }
 
 func (m *BaseModel) GetFilters() string {
-	return m.GetSearchValue()
+	return m.Ctx.WithScope(m.GetSearchValue())
 }
 
 func (m *BaseModel) GetMainContent() string {
